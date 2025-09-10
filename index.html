@@ -1,10 +1,224 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <title>Hello World</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stock Snapshot</title>
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#0b1220; --ink:#e5e7eb; --muted:#9ca3af;
+      --brand:#2563eb; --ok:#10b981; --warn:#f59e0b; --bad:#ef4444; --line:#1f2937;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:var(--bg); color:var(--ink);}
+    header{padding:28px 18px; background:linear-gradient(90deg, #111827, #0b1220);}
+    .wrap{max-width:1100px; margin:0 auto; padding:0 18px}
+    h1{margin:0; font-size:28px; letter-spacing:.3px}
+    .searchbar{display:flex; gap:12px; margin-top:14px; flex-wrap:wrap}
+    input[type=text]{flex:1; min-width:220px; background:#0b1220; color:var(--ink); border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-size:16px}
+    button{background:var(--brand); color:white; border:none; padding:12px 16px; border-radius:12px; font-size:16px; cursor:pointer}
+    button:hover{filter:brightness(1.1)}
+    main{padding:24px 0}
+    .grid{display:grid; grid-template-columns: repeat(12, 1fr); gap:16px}
+    .card{grid-column: span 12; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:0 10px 28px rgba(0,0,0,.25)}
+    @media (min-width:900px){
+      .col-4{grid-column: span 4}
+      .col-8{grid-column: span 8}
+      .col-6{grid-column: span 6}
+      .col-3{grid-column: span 3}
+    }
+    .title{display:flex; align-items:baseline; gap:10px; margin:0 0 4px 0}
+    .ticker{font-weight:700; font-size:26px}
+    .name{color:var(--muted); font-size:16px}
+    .statgrid{display:grid; grid-template-columns: repeat(2,1fr); gap:12px; margin-top:12px}
+    @media (min-width:900px){ .statgrid{grid-template-columns: repeat(3,1fr)}}
+    .stat{background:#0f1a30; border:1px solid var(--line); border-radius:12px; padding:12px}
+    .label{color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.5px}
+    .value{font-size:18px; margin-top:6px}
+    .chip{display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line)}
+    .chip.up{background:rgba(16,185,129,.15); color:var(--ok); border-color:rgba(16,185,129,.35)}
+    .chip.down{background:rgba(239,68,68,.15); color:var(--bad); border-color:rgba(239,68,68,.35)}
+    .note{margin-top:10px; color:var(--warn); font-size:13px}
+    .error{margin-top:10px; color:var(--bad); font-size:14px}
+    footer{padding:24px 18px; color:var(--muted); border-top:1px solid var(--line)}
+    code{background:#0f1a30; padding:2px 6px; border-radius:6px; border:1px solid var(--line)}
+  </style>
 </head>
 <body>
-  <h1 style="color:blue;">Hello World from GitHub Pages!</h1>
-  <p>This is my first webpage hosted on GitHub.</p>
+  <header>
+    <div class="wrap">
+      <h1>Stock Snapshot</h1>
+      <div class="searchbar">
+        <input id="tickerInput" type="text" placeholder="Enter ticker… e.g., AAPL" />
+        <button id="goBtn">Get metrics</button>
+        <span id="status" class="note"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section id="summary" class="card col-8">
+        <h2 class="title">
+          <span id="sym" class="ticker">—</span>
+          <span id="name" class="name">Type a ticker and press “Get metrics”.</span>
+        </h2>
+        <div class="statgrid">
+          <div class="stat">
+            <div class="label">Price</div>
+            <div class="value"><span id="price">—</span> <span id="move" class="chip">—</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Market Cap</div>
+            <div class="value" id="mcap">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">P/E (TTM)</div>
+            <div class="value" id="pe">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">EPS (TTM)</div>
+            <div class="value" id="eps">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Dividend Yield</div>
+            <div class="value" id="divy">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">52-Week Range</div>
+            <div class="value" id="range52">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Revenue (TTM)</div>
+            <div class="value" id="rev">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">EBITDA</div>
+            <div class="value" id="ebitda">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">ROE (TTM)</div>
+            <div class="value" id="roe">—</div>
+          </div>
+        </div>
+        <div id="err" class="error" style="display:none"></div>
+        <div id="note" class="note" style="display:none"></div>
+      </section>
+
+      <section class="card col-4">
+        <h3 style="margin-top:0">Tips</h3>
+        <ul>
+          <li>Example tickers: <code>AAPL</code>, <code>MSFT</code>, <code>NVDA</code>, <code>AMZN</code>, <code>GOOGL</code>.</li>
+          <li>Free tier is limited to ~5 requests/min. If you get a “Note about frequency,” wait a bit and try again.</li>
+          <li>Numbers are approximations. Always verify before investing.</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <footer class="wrap">
+    Built for learning • Data: Alpha Vantage (free) • Styling only, no external libraries
+  </footer>
+
+  <script>
+    // === CONFIG ===
+    const API_KEY = "QLYPPW0Y5A66147N";  // <- paste your free key here
+    const BASE = "https://www.alphavantage.co/query";
+
+    const $ = (id)=>document.getElementById(id);
+    const fmtUSD = n => isFinite(n) ? n.toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:2}) : "—";
+    const fmtNum = n => isFinite(n) ? Number(n).toLocaleString() : "—";
+    const fmtPct = n => isFinite(n) ? `${Number(n).toFixed(2)}%` : "—";
+    const abbr = n => {
+      if(!isFinite(n)) return "—";
+      n = Number(n);
+      const abs = Math.abs(n);
+      if (abs >= 1e12) return (n/1e12).toFixed(2) + " T";
+      if (abs >= 1e9)  return (n/1e9 ).toFixed(2) + " B";
+      if (abs >= 1e6)  return (n/1e6 ).toFixed(2) + " M";
+      return n.toLocaleString();
+    };
+
+    async function fetchJSON(url){
+      const r = await fetch(url);
+      const j = await r.json();
+      return j;
+    }
+
+    function showNote(msg){ const n=$("note"); n.style.display="block"; n.textContent=msg; }
+    function hideNote(){ $("note").style.display="none"; }
+    function showErr(msg){ const e=$("err"); e.style.display="block"; e.textContent=msg; }
+    function hideErr(){ $("err").style.display="none"; }
+
+    async function loadTicker(symRaw){
+      hideErr(); hideNote();
+      const sym = symRaw.trim().toUpperCase();
+      if(!sym) return;
+
+      $("status").textContent = "Loading…";
+      $("sym").textContent = sym;
+      $("name").textContent = "Fetching company info…";
+      $("price").textContent = "—";
+      $("move").textContent = "—";
+      $("move").className = "chip";
+
+      try{
+        // 1) Fundamentals / overview (company name, market cap, PE, EPS, etc.)
+        const overviewURL = `${BASE}?function=OVERVIEW&symbol=${encodeURIComponent(sym)}&apikey=${API_KEY}`;
+        const ov = await fetchJSON(overviewURL);
+
+        if (ov.Note) { showNote(ov.Note); }
+        if (Object.keys(ov).length === 0 || ov.Symbol !== sym) {
+          showErr("Could not find fundamentals for this symbol.");
+        }
+
+        // 2) Real-time quote (price + change)
+        const quoteURL = `${BASE}?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(sym)}&apikey=${API_KEY}`;
+        const q = await fetchJSON(quoteURL);
+        if (q.Note) { showNote(q.Note); }
+
+        const gq = q["Global Quote"] || {};
+        const price   = Number(gq["05. price"]);
+        const change  = Number(gq["09. change"]);
+        const changeP = Number(gq["10. change percent"]?.replace("%",""));
+
+        // Update header section
+        $("name").textContent = ov.Name || "—";
+        $("price").textContent = isFinite(price) ? fmtUSD(price) : "—";
+
+        const chip = $("move");
+        if (isFinite(changeP)) {
+          chip.textContent = `${change >= 0 ? "▲" : "▼"} ${fmtPct(changeP)}`;
+          chip.className = "chip " + (change >= 0 ? "up" : "down");
+        } else {
+          chip.textContent = "—";
+          chip.className = "chip";
+        }
+
+        // Stats
+        $("mcap").textContent   = abbr(Number(ov.MarketCapitalization));
+        $("pe").textContent     = isFinite(ov.PERatio) ? Number(ov.PERatio).toFixed(2) : "—";
+        $("eps").textContent    = isFinite(ov.EPS) ? Number(ov.EPS).toFixed(2) : "—";
+        $("divy").textContent   = isFinite(ov.DividendYield) ? fmtPct(Number(ov.DividendYield)*100) : (ov.DividendPerShare ? `${ov.DividendPerShare} / share` : "—");
+        $("range52").textContent= (ov["52WeekLow"] && ov["52WeekHigh"]) ? `${fmtUSD(Number(ov["52WeekLow"]))} – ${fmtUSD(Number(ov["52WeekHigh"]))}` : "—";
+        $("rev").textContent    = abbr(Number(ov.RevenueTTM));
+        $("ebitda").textContent = abbr(Number(ov.EBITDA));
+        $("roe").textContent    = isFinite(ov.ReturnOnEquityTTM) ? fmtPct(Number(ov.ReturnOnEquityTTM)*100) : "—";
+
+      } catch(err){
+        console.error(err);
+        showErr("Something went wrong while fetching data.");
+      } finally{
+        $("status").textContent = "";
+      }
+    }
+
+    // Wire up UI
+    $("goBtn").addEventListener("click", () => loadTicker($("tickerInput").value));
+    $("tickerInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") loadTicker(e.target.value); });
+
+    // Optional: prefill with AAPL on first load
+    // loadTicker("AAPL");
+  </script>
 </body>
 </html>
